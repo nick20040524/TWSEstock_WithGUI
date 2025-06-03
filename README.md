@@ -1,206 +1,121 @@
-# 🇹🇼 台灣上市股票資料更新與收盤價預測系統 📈
 
-本專案可自動擷取台灣證券交易所（TWSE）上市股票資訊，更新歷史股價資料，並使用機器學習模型進行每日收盤價與漲跌方向預測。  
-支援快取機制與 SSL 憑證繞過，適合部署於開發環境與自動排程。
+# 📈 台股收盤價預測系統
 
----
-
-## 🔧 功能說明
-
-- ✅ 擷取最新 TWSE 上市股票清單（含快取）
-- ✅ 抓取個股每日歷史資料（fallback_{代碼}.csv）
-- ✅ 預測明日收盤價（回歸模型）
-- ✅ 預測明日漲跌方向（分類模型）
-- ✅ 產出圖表（charts/price_prediction_{代碼}.png）
-- ✅ 匯出預測報告（prediction_report.xlsx）
-- ✅ 支援 SSL 繞過與 fallback 快取（避免網路錯誤）
+🎯 **專案功能總覽**  
+✅ 自動擷取台股清單  
+✅ 更新個股歷史資料（自動補抓缺漏）  
+✅ 建立線性回歸預測模型 ➜ 顯示 R² 決定係數  
+✅ 匯出預測報表（`prediction_report.xlsx`）  
+✅ 產生預測趨勢圖（`charts/`）  
+✅ 語音輸入股票代碼（自動偵測 USB 麥克風）  
+✅ 中文語音播報預測結果（使用 gTTS, Google TTS API）  
+✅ GUI 操作（tkinter），附狀態顯示（跑馬燈動畫）  
+✅ 支援 Raspberry Pi OS Bullseye ➜ 可用 seeed-2mic 音效卡  
+✅ **Bookworm kernel 6.12.25 無法錄音，請使用 USB 麥克風**
 
 ---
 
-## 📁 專案結構
+## 🔧 安裝步驟
 
-```
-Stock_TWSE/
-├── main.py                          # 主程式（設定、流程控制）
-├── requirements.txt                 # 相依套件
-├── twse_stock.csv                   # 股票清單快取（自動產生）
-├── prediction_report.xlsx           # 預測摘要報告
-├── charts/                          # 預測圖表資料夾
-│   └── price_prediction_2330.png
-├── fallback_2330.csv                # 台積電歷史資料快取（自動產生）
-├── stock/                           # 模組資料夾
-│   ├── __init__.py
-│   ├── setup_chinese_font.py        # 中文字體設定（matplotlib）
-│   ├── twse_stock_info.py           # 股票清單擷取與快取
-│   ├── update_module.py             # 歷史股價更新模組（含 verify_ssl 控制）
-│   └── predict_and_export.py        # 預測與圖表、報表輸出
-```
-
----
-
-## 🛠️ 安裝與執行方式
-
-### 1️⃣ 安裝 Python 套件
-
-```bash
+1️⃣ 安裝必要軟體  
+\`\`\`bash
+sudo apt update
+sudo apt install python3-pip mpg321 espeak-ng alsa-utils portaudio19-dev
 pip install -r requirements.txt
-```
+\`\`\`
 
-### 2️⃣ 建議安裝中文字體（Linux 系統）
-
-```bash
-sudo apt install fonts-noto-cjk
-```
-
----
-
-## ▶️ 執行主程式
-
-```bash
-python main.py
-```
-
-程式會自動：
-
-- 擷取或使用快取股票清單
-- 更新歷史資料（fallback_xxxx.csv）
-- 執行預測（分類 + 回歸）
-- 產出圖表與報表
+2️⃣ 若使用 seeed-2mic（在 Raspberry Pi OS Bullseye）  
+\`\`\`bash
+git clone https://github.com/respeaker/seeed-voicecard.git
+cd seeed-voicecard
+sudo ./install.sh
+sudo reboot
+\`\`\`
 
 ---
 
-## 🔐 SSL 憑證問題（開發環境常見）
+## 🟩 執行方式
 
-若遇到以下錯誤：
-
-```
-[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed
-```
-
-可於 `main.py` 設定以下變數以跳過驗證（僅用於測試）：
-
-```python
-verify_ssl = False
-```
-
-並將此參數傳入：
-
-```python
-twse_stock_info(use_cache=False, verify_ssl=verify_ssl)
-update_stock_data_incrementally(..., verify_ssl=verify_ssl)
-```
+\`\`\`bash
+python3 gui_main.py
+\`\`\`
 
 ---
 
-## ⏱️ 自動排程
-
-## 🪟 Windows：使用工作排程器 + `run_main.bat`
-
-### ✅ 已提供批次檔案：`run_main.bat`
-
-內容如下：
-
-```bat
-@echo off
-cd /d C:\Users\你的使用者名稱\路徑\Stock_TWSE
-python main.py
-```
-
-### ✅ 設定步驟：
-
-1. 開啟「工作排程器」→ 建立新工作
-2. 【觸發條件】設定為每天固定時間（如早上 8:00）
-3. 【動作】選擇「啟動程式」，指定 `run_main.bat` 的完整路徑
-4. 【一般】勾選「以最高權限執行」
-5. 儲存並啟用即可每日自動執行
+## 🟩 重要 Python 相依套件
+\`\`\`plaintext
+pandas
+matplotlib
+scikit-learn
+joblib
+requests
+lxml
+certifi
+tk
+Pillow
+speechrecognition
+gtts
+\`\`\`
 
 ---
 
-## 🍎 macOS / 🐧 Linux：使用 crontab + `run_main.sh`
+## 🟩 使用注意
 
-### ✅ 已提供 shell 腳本：`run_main.sh`
-
-檔案內容如下：
-
-```bash
-#!/bin/bash
-cd /home/your_username/your_project/
-python3 main.py
-```
-
-如使用虛擬環境，請啟用虛擬環境再執行程式：
-
-```bash
-source venv/bin/activate
-python3 main.py
-```
-
-### ✅ 設定排程：
-
-1. 開啟終端機
-2. 執行命令：
-
-```bash
-crontab -e
-```
-
-3. 加入以下排程設定（每天早上 8 點執行）：
-
-```bash
-0 8 * * * /bin/bash /home/your_username/your_project/run_main.sh >> /home/your_username/your_project/run.log 2>&1
-```
-
-4. 儲存並離開編輯器，排程即自動生效
+✅ 語音輸入使用 \`speech_recognition\` ➜ 自動偵測 USB 麥克風，不需手動設定  
+✅ 中文語音播報使用 \`gTTS\` ➜ 需 **網路連線**  
+✅ \`mpg321\` 播放語音，若未安裝可改用 \`mplayer\`  
 
 ---
 
-## 📁 注意事項：
-
-- `run_main.bat` 與 `run_main.sh` 均需位於你的專案根目錄或指定正確路徑
-- 建議腳本內使用完整絕對路徑，避免排程器找不到目錄
-- 輸出報表與圖表會自動儲存在 `charts/` 和根目錄中
+## 📸 執行畫面
+> 請附上 GUI 介面截圖、圖表範例、報表範例等
 
 ---
 
-## 📌 推薦測試方式
+## 🟩 硬體建議
 
-- 在設定排程前，請先手動執行腳本確認無誤：
-    - Windows：雙擊 `run_main.bat`
-    - Linux/macOS：執行 `bash run_main.sh`
-
----
-
-## 🧠 小提醒：
-
-- Linux 系統請確認 `run_main.sh` 權限正確，可執行：
-```bash
-chmod +x run_main.sh
-```
-
-- 若 Python 環境需特殊設定（如 conda/venv），請在腳本中加入 activate 指令
+- Raspberry Pi 4 Model B  
+- Raspberry Pi OS Bullseye 64-bit  
+- USB 麥克風（或 seeed-2mic）  
+- 3.5mm 耳機或喇叭輸出
 
 ---
 
-## 👨‍💻 作者資訊
+## 🟩 聲音播放測試
 
-徐景煌 @ 國立宜蘭大學  
-電子工程系 | 股票預測與爬蟲專案開發者  
+若無法聽到語音播報：  
+1️⃣ 測試系統音效卡：  
+\`\`\`bash
+aplay /usr/share/sounds/alsa/Front_Center.wav
+\`\`\`
+2️⃣ 播放語音檔案：  
+\`\`\`bash
+mpg321 tts_output.mp3
+\`\`\`
+3️⃣ 若仍無聲音 ➜ 使用 \`sudo raspi-config\` ➜ Audio ➜ 選擇正確輸出裝置
 
 ---
 
-## 📜 授權條款
+## 🟩 心得
 
-本專案開源、僅供學術與研究用途。  
-若引用請附上原始來源與作者。
+🟩 這個專案整合了資料抓取、模型預測、語音輸入與語音播報。最大的挑戰是音效卡在不同作業系統與驅動下的相容性，最終選擇 USB 麥克風作為穩定的語音輸入方式。系統執行流暢，語音播報與 GUI 整合良好，未來可拓展自動化推播或行動裝置介面。
 
 ---
 
-## 📚 資源參考
+## 🟩 參考來源
 
-- [【Python股市爬蟲 第3集】一口氣爬多檔台股個股｜必學的股市爬蟲技術](https://www.youtube.com/watch?v=wM5wJNgpIbA&ab_channel=%E8%82%A1%E6%B5%B7%E5%B0%8F%E8%8B%B1%E9%9B%84)
-- [一口氣下載多支上市台股個股歷史資料 Colab程式碼](https://colab.research.google.com/drive/1gSpB7NWEUu7gOv53c6VQsO0E3jUqUreo?usp=sharing)
-- [台灣證券交易所官方網站 (TWSE)](https://www.twse.com.tw/)
-- [Google Fonts: Noto Sans CJK](https://fonts.google.com/noto#sans-hant)
-- [scikit-learn 官方文件](https://scikit-learn.org/)
-- [Matplotlib 中文字體處理](https://matplotlib.org/)
-- [pandas 中文手冊](https://pandas.pydata.org/)
+- Raspberry Pi 官方文件  
+- seeed-voicecard GitHub  
+- gTTS / speech_recognition 官方文件  
+- TWSE 官網
+
+---
+
+## 🟩 其他
+
+- 程式碼含完整註解、模組化結構  
+- 若需要影片示範，請提供錄影畫面（含視窗 + 重要程式片段講解）
+
+---
+
+✨ 以上就是完整的 `README.md`，可直接放到專案目錄！

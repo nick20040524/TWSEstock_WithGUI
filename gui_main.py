@@ -1,15 +1,14 @@
-# gui_main.py
-# -*- coding: utf-8 -*-
+# gui_main.py (改用 gTTS 播報中文)
 import tkinter as tk
 from tkinter import ttk, messagebox
 from PIL import Image, ImageTk
 import pandas as pd
 import threading
-import pyttsx3  # 語音輸出
+from gtts import gTTS
+import os
 import speech_recognition as sr  # 語音輸入
 from stock import workflow
 from stock.setup_chinese_font import setup_chinese_font
-import os
 import matplotlib.pyplot as plt
 import warnings
 import urllib3
@@ -26,11 +25,6 @@ stock_codes = get_target_codes()
 root = tk.Tk()
 root.title("台股收盤價預測系統")
 root.geometry("1000x800")
-
-# 語音引擎
-engine = pyttsx3.init()
-engine.setProperty("rate", 150)
-engine.setProperty("volume", 1.0)
 
 # 跑馬燈動畫控制
 marquee_job = None
@@ -95,6 +89,22 @@ img_label.pack(fill=tk.BOTH, expand=True)
 paned_window.add(img_frame, stretch="always")
 
 
+def speak_chinese(text):
+    tts = gTTS(text=text, lang='zh-tw')
+    tts.save("tts_output.mp3")
+    os.system("mpg321 tts_output.mp3")
+
+
+def find_usb_microphone_index():
+    mic_list = sr.Microphone.list_microphone_names()
+    for idx, name in enumerate(mic_list):
+        if any(keyword in name.lower() for keyword in ["usb", "microphone", "mic"]):
+            print(f"找到 USB 麥克風: {name} (索引: {idx})")
+            return idx
+    print("⚠️ 沒有偵測到 USB 麥克風，使用預設裝置")
+    return None
+
+
 def threaded_workflow():
     status_text("[UPDATING] 資料更新中", "orange")
     result_text.delete("1.0", tk.END)
@@ -123,7 +133,6 @@ def threaded_workflow():
         )
         result_text.insert(tk.END, latest_info)
 
-        # 語音播報
         speech = (
             f"股票代號 {stock_code}，"
             f"股票名稱 {stock_name}，"
@@ -131,8 +140,7 @@ def threaded_workflow():
             f"預測收盤價 {latest['預測收盤價'].values[0]:.2f} 元，"
             f"信心度 {latest['信心度'].values[0]*100:.1f}%。"
         )
-        engine.say(speech)
-        engine.runAndWait()
+        speak_chinese(speech)
 
         if os.path.exists("prediction_report.xlsx"):
             df_summary = pd.read_excel("prediction_report.xlsx")
@@ -152,7 +160,8 @@ def threaded_workflow():
 
 def voice_input():
     recognizer = sr.Recognizer()
-    with sr.Microphone() as source:
+    device_index = find_usb_microphone_index()
+    with sr.Microphone(device_index=device_index) as source:
         status_text("[MIC] 請說出股票代碼", "blue")
         try:
             audio = recognizer.listen(source, timeout=5)
@@ -161,24 +170,19 @@ def voice_input():
             if code_text in stock_codes:
                 stock_code_var.set(code_text)
                 status_text(f"[OK] 偵測到股票代碼：{code_text}", "green")
-                engine.say(f"已偵測到股票代碼 {code_text}，可開始預測")
-                engine.runAndWait()
+                speak_chinese(f"已偵測到股票代碼 {code_text}，可開始預測")
             else:
                 status_text(f"[WARN] 無效代碼：{code_text}", "red")
-                engine.say(f"無效的代碼 {code_text}，請再說一次")
-                engine.runAndWait()
+                speak_chinese(f"無效的代碼 {code_text}，請再說一次")
         except sr.UnknownValueError:
             status_text("[WARN] 語音無法辨識，請再說一次", "red")
-            engine.say("無法辨識，請再說一次")
-            engine.runAndWait()
+            speak_chinese("無法辨識，請再說一次")
         except sr.WaitTimeoutError:
             status_text("[WARN] 語音輸入逾時", "red")
-            engine.say("語音輸入逾時，請再試一次")
-            engine.runAndWait()
+            speak_chinese("語音輸入逾時，請再試一次")
         except Exception as e:
             status_text(f"[ERROR] 發生錯誤：{e}", "red")
-            engine.say("發生錯誤")
-            engine.runAndWait()
+            speak_chinese("發生錯誤")
 
 
 def show_prediction_image(stock_code, period):
@@ -224,6 +228,5 @@ def close_app():
     root.destroy()
 
 
-# 啟動 GUI
 status_text("[READY] 系統就緒", "blue")
 root.mainloop()
