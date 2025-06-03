@@ -1,0 +1,12 @@
+
+pandas
+matplotlib
+scikit-learn
+joblib
+requests
+lxml
+certifi
+tk
+Pillow
+speechrecognition
+gtts
