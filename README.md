@@ -76,10 +76,19 @@ python3 gui_main.py 2>/dev/null
 
 ## 🟩 參考來源
 
-- Raspberry Pi 官方文件  
-- seeed-voicecard GitHub  
-- gTTS / speech_recognition 官方文件  
-- TWSE 官網
+- [【Python股市爬蟲 第3集】一口氣爬多檔台股個股｜必學的股市爬蟲技術](https://ww>
+- [一口氣下載多支上市台股個股歷史資料 Colab程式碼](https://colab.research.googl>
+- [台灣證券交易所官方網站 (TWSE)](https://www.twse.com.tw/)
+- [Google Fonts: Noto Sans CJK](https://fonts.google.com/noto#sans-hant)
+- [scikit-learn 官方文件](https://scikit-learn.org/)
+- [Matplotlib 中文字體處理](https://matplotlib.org/)
+- [pandas 中文手冊](https://pandas.pydata.org/)
+- [Raspberry Pi 官方文件](https://www.raspberrypi.com/software/)
+- [seeed-voicecard GitHub](https://github.com/respeaker/seeed-voicecard)
+- [gTTS 官方文件](https://pypi.org/project/gTTS/)
+- [speech_recognition 官方文件](https://pypi.org/project/SpeechRecognition/)
+
+
 
 ---
 
