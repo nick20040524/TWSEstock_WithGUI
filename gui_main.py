@@ -1,16 +1,16 @@
-# gui_main.py (改用 gTTS 播報中文)
+# gui_main.py（最終更新版，若代碼不存在會語音播報）
+import os
+import warnings
 import tkinter as tk
 from tkinter import ttk, messagebox
 from PIL import Image, ImageTk
 import pandas as pd
 import threading
 from gtts import gTTS
-import os
-import speech_recognition as sr  # 語音輸入
+import speech_recognition as sr
 from stock import workflow
 from stock.setup_chinese_font import setup_chinese_font
 import matplotlib.pyplot as plt
-import warnings
 import urllib3
 
 warnings.filterwarnings("ignore", category=UserWarning)
@@ -26,11 +26,9 @@ root = tk.Tk()
 root.title("台股收盤價預測系統")
 root.geometry("1000x800")
 
-# 跑馬燈動畫控制
 marquee_job = None
 marquee_counter = 0
 
-# 上層：基本操作區
 top_frame = tk.Frame(root)
 top_frame.pack(fill=tk.X, pady=5)
 
@@ -44,30 +42,23 @@ predict_period_var = tk.StringVar(value="10天")
 predict_period_menu = ttk.Combobox(top_frame, textvariable=predict_period_var, values=["10天", "全部"], state="readonly", width=10)
 predict_period_menu.pack(side=tk.LEFT, padx=5)
 
-tk.Button(top_frame, text="更新資料並預測", command=lambda: threading.Thread(target=threaded_workflow, daemon=True).start(),
-          bg="lightblue").pack(side=tk.LEFT, padx=5)
+tk.Button(top_frame, text="更新資料並預測", command=lambda: threading.Thread(target=threaded_workflow, daemon=True).start(), bg="lightblue").pack(side=tk.LEFT, padx=5)
 
-tk.Button(top_frame, text="[MIC] 語音輸入股票代碼", command=lambda: threading.Thread(target=voice_input, daemon=True).start(),
-          bg="lightgreen").pack(side=tk.LEFT, padx=5)
+tk.Button(top_frame, text="[MIC] 語音輸入股票代碼", command=lambda: threading.Thread(target=voice_input, daemon=True).start(), bg="lightgreen").pack(side=tk.LEFT, padx=5)
 
 tk.Button(top_frame, text="結束", command=lambda: close_app(), bg="lightcoral").pack(side=tk.LEFT, padx=5)
 
-# 狀態顯示 Label
 status_label = tk.Label(root, text="[READY] 系統就緒", fg="blue", font=("Arial", 12, "bold"))
 status_label.pack(pady=5)
 
-# 股票資訊 / 預測結果顯示
 info_frame = tk.Frame(root)
 info_frame.pack(fill=tk.X, pady=5)
-
 result_text = tk.Text(info_frame, height=7)
 result_text.pack(fill=tk.X, padx=10)
 
-# 下層 PanedWindow
 paned_window = tk.PanedWindow(root, orient=tk.VERTICAL)
 paned_window.pack(fill=tk.BOTH, expand=True)
 
-# 上面：表格
 table_frame = tk.Frame(paned_window)
 tk.Label(table_frame, text="[TABLE] 預測統整表格：").pack()
 tree_frame = tk.Frame(table_frame)
@@ -77,15 +68,12 @@ summary_tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 scrollbar = ttk.Scrollbar(tree_frame, orient="vertical", command=summary_tree.yview)
 summary_tree.configure(yscroll=scrollbar.set)
 scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-
 paned_window.add(table_frame, stretch="always")
 
-# 下面：圖表
 img_frame = tk.Frame(paned_window)
 tk.Label(img_frame, text="[CHART] 收盤價趨勢圖：").pack()
 img_label = tk.Label(img_frame)
 img_label.pack(fill=tk.BOTH, expand=True)
-
 paned_window.add(img_frame, stretch="always")
 
 
@@ -93,16 +81,6 @@ def speak_chinese(text):
     tts = gTTS(text=text, lang='zh-tw')
     tts.save("tts_output.mp3")
     os.system("mpg321 tts_output.mp3")
-
-
-def find_usb_microphone_index():
-    mic_list = sr.Microphone.list_microphone_names()
-    for idx, name in enumerate(mic_list):
-        if any(keyword in name.lower() for keyword in ["usb", "microphone", "mic"]):
-            print(f"找到 USB 麥克風: {name} (索引: {idx})")
-            return idx
-    print("⚠️ 沒有偵測到 USB 麥克風，使用預設裝置")
-    return None
 
 
 def threaded_workflow():
@@ -156,33 +134,38 @@ def threaded_workflow():
     except Exception as e:
         status_text(f"[ERROR] 發生錯誤：{e}", "red")
         messagebox.showerror("錯誤", f"執行時發生錯誤：\n{e}")
+        # 🔧 加上語音播報提示
+        speak_chinese("找不到股票代碼，請再說一次")
 
 
 def voice_input():
     recognizer = sr.Recognizer()
-    device_index = find_usb_microphone_index()
-    with sr.Microphone(device_index=device_index) as source:
-        status_text("[MIC] 請說出股票代碼", "blue")
-        try:
+    device_index = 7  # 使用 PulseAudio 虛擬裝置
+    try:
+        with sr.Microphone(device_index=device_index, sample_rate=16000) as source:
+            status_text("[MIC] 請說出股票代碼", "blue")
             audio = recognizer.listen(source, timeout=5)
             code_text = recognizer.recognize_google(audio, language="zh-TW")
             code_text = "".join(filter(str.isdigit, code_text))
-            if code_text in stock_codes:
+            if code_text:
                 stock_code_var.set(code_text)
-                status_text(f"[OK] 偵測到股票代碼：{code_text}", "green")
-                speak_chinese(f"已偵測到股票代碼 {code_text}，可開始預測")
+                status_text(f"[OK] 偵測到股票代碼：{code_text}，即將開始預測", "green")
+                speak_chinese(f"已偵測到股票代碼 {code_text}，即將開始預測")
+                threading.Thread(target=threaded_workflow, daemon=True).start()
             else:
-                status_text(f"[WARN] 無效代碼：{code_text}", "red")
-                speak_chinese(f"無效的代碼 {code_text}，請再說一次")
-        except sr.UnknownValueError:
-            status_text("[WARN] 語音無法辨識，請再說一次", "red")
-            speak_chinese("無法辨識，請再說一次")
-        except sr.WaitTimeoutError:
-            status_text("[WARN] 語音輸入逾時", "red")
-            speak_chinese("語音輸入逾時，請再試一次")
-        except Exception as e:
-            status_text(f"[ERROR] 發生錯誤：{e}", "red")
-            speak_chinese("發生錯誤")
+                status_text(f"[WARN] 語音無法辨識為數字", "red")
+                speak_chinese("無法辨識為數字，請再試一次")
+    except sr.UnknownValueError:
+        status_text("[WARN] 語音無法辨識，請再說一次", "red")
+        speak_chinese("無法辨識，請再說一次")
+    except sr.WaitTimeoutError:
+        status_text("[WARN] 語音輸入逾時", "red")
+        speak_chinese("語音輸入逾時，請再試一次")
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        status_text(f"[ERROR] 發生錯誤：{e}", "red")
+        speak_chinese("發生錯誤")
 
 
 def show_prediction_image(stock_code, period):
@@ -199,17 +182,13 @@ def show_prediction_image(stock_code, period):
 
 def status_text(text, color):
     global marquee_job, marquee_counter
-
     result_text.insert(tk.END, f"\n狀態：{text}\n")
     result_text.tag_configure("status", foreground=color)
     result_text.tag_add("status", "end-2l", "end-1l")
-
     status_label.config(text=text, fg=color)
-
     if marquee_job:
         root.after_cancel(marquee_job)
         marquee_job = None
-
     if "更新中" in text:
         marquee_counter = 0
         animate_marquee(text, color)
