@@ -14,6 +14,7 @@ import pandas as pd
 import os
 from stock.setup_chinese_font import setup_chinese_font
 
+# 將完整預測輸出流程整合成一個函式執行
 def update_and_predict_workflow(stock_code, verify_ssl=False):
     # 🟩 檢查 twse_stock.csv 是否存在
     if os.path.exists("twse_stock.csv"):

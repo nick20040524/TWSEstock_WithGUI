@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 from sklearn.linear_model import LinearRegression
 from sklearn.model_selection import train_test_split
 
+# 載入股市資訊
 def load_stock_data(stock_code, fallback_dir="."):
     path = os.path.join(fallback_dir, f"fallback_{stock_code}.csv")
     if not os.path.exists(path):
@@ -20,6 +21,7 @@ def load_stock_data(stock_code, fallback_dir="."):
     df["股票代碼"] = stock_code
     return df
 
+# 特徵標籤建立
 def build_features(df):
     df = df.copy()
     df["收盤價_shift1"] = df["收盤價"].shift(1)
@@ -29,6 +31,7 @@ def build_features(df):
     df["漲跌標籤"] = (df["收盤價明日"] > df["收盤價"]).astype(int)
     return df.dropna()
 
+# 訓練模型並預測
 def train_and_predict(df_feat, stock_code):
     features = ["收盤價_shift1", "漲跌價差_shift1", "成交股數", "收盤_5日均線"]
     X = df_feat[features]
@@ -84,7 +87,7 @@ def train_and_predict(df_feat, stock_code):
 
     return df_result, r2
 
-
+# 載入模型並預測
 def load_model_and_predict(df_feat, stock_code):
     model_path = f"models/model_{stock_code}.pkl"
     if not os.path.exists(model_path):
@@ -125,6 +128,7 @@ def load_model_and_predict(df_feat, stock_code):
 
     return df_result
 
+# 判斷是否存在模型檔案，有則載入，無則訓練並儲存
 def ensure_model_and_predict(df_feat, stock_code):
     model_path = f"models/model_{stock_code}.pkl"
     if os.path.exists(model_path):
@@ -132,6 +136,7 @@ def ensure_model_and_predict(df_feat, stock_code):
     else:
         return train_and_predict(df_feat, stock_code)
 
+# 預測多筆標的收盤價
 def predict_multiple_stocks(stock_codes):
     all_results = []
     for code in stock_codes:
@@ -145,6 +150,7 @@ def predict_multiple_stocks(stock_codes):
         all_results.append(df_pred)
     return pd.concat(all_results, ignore_index=True) if all_results else pd.DataFrame()
 
+# 繪出近十天的收盤價走勢圖
 def plot_predictions_ten(df_result, output_dir=".", prop=None):
     os.makedirs(output_dir, exist_ok=True)
     grouped = df_result.groupby("股票代碼")
@@ -181,6 +187,7 @@ def plot_predictions_ten(df_result, output_dir=".", prop=None):
         print(f"📈 已儲存圖檔：{filename}")
         plt.close()
 
+# 繪出上市日至預測日的收盤價走勢圖
 def plot_predictions_all(df_result, output_dir=".", prop=None):
     os.makedirs(output_dir, exist_ok=True)
     grouped = df_result.groupby("股票代碼")
@@ -206,6 +213,7 @@ def plot_predictions_all(df_result, output_dir=".", prop=None):
         print(f"📈 已儲存圖檔：{filename}")
         plt.close()
 
+#　輸出結果統整報表
 def export_prediction_summary(df_result, output_path="prediction_report.xlsx"):
     today_str = datetime.today().strftime("%Y/%m/%d")
     latest = df_result.sort_values("日期").groupby("股票代號").tail(1).copy()

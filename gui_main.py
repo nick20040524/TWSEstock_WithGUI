@@ -1,4 +1,4 @@
-# gui_main.py（最終更新版，若代碼不存在會語音播報）
+# gui_main.py
 import os
 import warnings
 import tkinter as tk
