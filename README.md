@@ -95,5 +95,3 @@ python3 gui_main.py 2>/dev/null
 - [FLAC](https://xiph.org/flac/)
 
 ---
-
-✨ 以上即為最新的專案說明文件！隨時提出 issue、pull request，或想要的擴充功能，盡管說吧 😁🎤📈
